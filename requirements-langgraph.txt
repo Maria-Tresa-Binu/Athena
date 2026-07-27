@@ -1,0 +1,5 @@
+# Optional LangChain/LangGraph runtime for MCP-backed reasoning.
+langchain>=1.0,<2
+langgraph>=1.0,<2
+langchain-mcp-adapters>=0.1,<1
+langchain-openai>=1.0,<2

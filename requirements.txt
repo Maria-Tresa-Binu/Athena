@@ -1,0 +1,2 @@
+# The MVP uses only the Python standard library at runtime.
+# pytest>=8.0,<9  # optional, for contributors
