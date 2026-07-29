@@ -9,3 +9,5 @@ The application host currently uses local tool implementations so the core behav
 - `reminders`: reminder CRUD tools
 
 Each server should expose narrow tools and declare read-only versus write behavior in its metadata. The host must keep confirmation and authorization decisions outside the tool implementation.
+
+The local News MCP server is implemented at `news/server.py` and is loaded automatically by LangGraph mode.

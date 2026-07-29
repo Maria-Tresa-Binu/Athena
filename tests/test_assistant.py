@@ -2,7 +2,19 @@ import unittest
 
 from athena.assistant import Athena
 from athena.storage import Storage
-from athena.tools import build_tools
+from athena.tools import _extract_article, build_tools
+from athena.speech import prepare_for_speech
+
+
+def test_article_extraction_returns_clean_metadata():
+    article = _extract_article("https://example.com/news/1", "<html><title>AI News</title><article><p>Hello technology world.</p></article></html>")
+    assert article["title"] == "AI News"
+    assert "Hello technology world" in article["text"]
+
+
+def test_speech_cleanup_removes_urls_and_symbols():
+    spoken = prepare_for_speech("News — [AI update] https://example.com/a?id=1 🚀")
+    assert spoken == "News AI update"
 
 
 class AssistantTests(unittest.TestCase):

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>Athena</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar"><div class="brand"><span class="mini-orb"></span><div><h1>ATHENA</h1><p>PERSONAL INTELLIGENCE SYSTEM</p></div></div><div class="controls"><label class="voice-label" for="voice">VOICE</label><select id="voice" aria-label="Choose Athena voice"></select><button id="reset" class="ghost" type="button">RESET</button></div></header>
+      <section class="activation" aria-label="Athena activation">
+        <div class="hud-ring ring-one"></div><div class="hud-ring ring-two"></div><div class="hud-ring ring-three"></div>
+        <button id="activate" class="core" type="button"><span class="core-label">ACTIVATE</span><span class="core-name">ATHENA</span><span class="core-state">STANDBY</span></button>
+        <div class="scanline"></div>
+      </section>
+      <div id="status" class="status"><span class="status-dot"></span><span>STANDBY // READY</span></div>
+      <section id="briefing" class="briefing" aria-live="polite"><div class="briefing-empty">Activate Athena for your daily intelligence briefing.</div></section>
+      <section id="messages" class="messages" aria-live="polite"><div class="message athena"><div class="bubble">I’m ready. Activate me for your inbox, calendar, tasks, and technology news.</div></div></section>
+      <form id="composer" class="composer"><button id="mic" class="round" type="button" aria-label="Use microphone">MIC</button><input id="input" autocomplete="off" placeholder="Ask Athena anything…" /><button class="send" type="submit">SEND</button></form>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

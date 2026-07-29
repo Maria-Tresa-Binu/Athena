@@ -6,3 +6,4 @@ athena.db
 .env
 .env.*
 !\.env.example
+var_local.env
