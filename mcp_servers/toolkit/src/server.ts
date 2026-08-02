@@ -2,7 +2,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { Toolkit } from "@zilobase/toolkit";
 import { randomUUID } from "node:crypto";
-import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,8 +20,7 @@ const toolkit = new Toolkit({
 });
 
 const defaultUserId = process.env.TOOLKIT_USER_ID || "athena-user";
-const callbackPort = Number(process.env.TOOLKIT_CALLBACK_PORT || "8765");
-const callbackUrl = process.env.TOOLKIT_RETURN_URL || `http://localhost:${callbackPort}/toolkit/callback`;
+const callbackUrl = process.env.TOOLKIT_RETURN_URL || "http://localhost:8765/toolkit/callback";
 
 function loadProjectEnv(): void {
   const envPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../../var_local.env");
@@ -65,14 +63,19 @@ server.tool(
   {
     userId: z.string().default(defaultUserId).describe("Stable Athena user identifier"),
     connector: z.enum(["gmail", "google-calendar"]),
-    returnUrl: z.string().url().default(callbackUrl),
     read: z.literal("all").default("all"),
     write: z.array(z.string()).default([]),
   },
-  async ({ userId, connector, returnUrl, read, write }) => {
-    const request = await toolkit.connectors.authorize(userId, connector, { returnUrl, read, write });
+  async ({ userId, connector, read, write }) => {
+    console.error(`[Athena Toolkit] attempting returnUrl=${callbackUrl}`);
+    const request = await toolkit.connectors.authorize(userId, connector, { returnUrl: callbackUrl, read, write });
     const requestId = randomUUID();
     pendingAuthorizations.set(requestId, request);
+    // MCP uses stdout for protocol messages, so diagnostics must go to stderr.
+    console.error(`[Athena Toolkit] OAuth started: connector=${connector} userId=${userId}`);
+    console.error(`[Athena Toolkit] returnUrl=${callbackUrl}`);
+    console.error(`[Athena Toolkit] requestId=${requestId}`);
+    console.error(`[Athena Toolkit] redirectUrl=${request.redirectUrl}`);
     return json({ requestId, redirectUrl: request.redirectUrl, message: "Open redirectUrl to authorize the connector, then ask Athena to check the request." });
   },
 );
@@ -137,19 +140,3 @@ function isLikelyWriteTool(toolName: string): boolean {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-
-const callbackServer = createServer((request, response) => {
-  const requestUrl = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
-  if (requestUrl.pathname !== "/toolkit/callback") {
-    response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
-    response.end("Not found");
-    return;
-  }
-  response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-  response.end("<!doctype html><html><body><h1>Athena is connected</h1><p>You can close this tab and return to Athena.</p></body></html>");
-});
-
-callbackServer.on("error", (error) => {
-  console.error(`Toolkit OAuth callback server failed on port ${callbackPort}:`, error);
-});
-callbackServer.listen(callbackPort, "127.0.0.1");

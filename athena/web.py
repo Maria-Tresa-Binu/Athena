@@ -2,12 +2,13 @@
 
 import argparse
 import asyncio
+import html
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
 from .langgraph_agent import LangGraphAthena, LangGraphUnavailable, format_failure
@@ -38,6 +39,17 @@ async def index() -> FileResponse:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/toolkit/callback")
+async def toolkit_callback() -> HTMLResponse:
+    """Public OAuth landing page used by the Toolkit authorization flow."""
+    return HTMLResponse(
+        "<!doctype html><html><head><title>Athena connected</title></head>"
+        "<body style='font-family: sans-serif; padding: 2rem'>"
+        "<h1>Athena is connected</h1>"
+        "<p>You can close this tab and return to Athena.</p></body></html>"
+    )
 
 
 @app.get("/static/{asset:path}")

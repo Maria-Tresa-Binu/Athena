@@ -89,7 +89,25 @@ python -m pip install -r requirements-web.txt
 python -m athena.web --host 0.0.0.0 --port 8080
 ```
 
-On the same Wi-Fi network, find this computer's local IP with `ipconfig` and open `http://YOUR-PC-IP:8080` on your phone. The page supports chat, browser microphone input, and browser speech output. Keep this local-only until authentication and HTTPS are added; do not expose a personal Gmail/calendar assistant directly to the public internet.
+On the same Wi-Fi network, find this computer's local IP with `ipconfig` and open `http://YOUR-PC-IP:8080` on your phone. The page supports chat, browser microphone input, and browser speech output.
+
+### Access Athena from any network
+
+For a temporary public HTTPS website, install Cloudflare Tunnel (`cloudflared`) and run:
+
+```powershell
+.\run_public.ps1
+```
+
+Or install and launch it in one step:
+
+```powershell
+.\run_public.ps1 -InstallCloudflared
+```
+
+The command starts Athena locally and prints a temporary `https://*.trycloudflare.com` address. Open that address from any laptop or phone. Keep the PowerShell window open; closing it stops the site. The temporary address changes each time it starts.
+
+This quick tunnel is intended for testing. Because it exposes a personal assistant and connected accounts, use a named Cloudflare Tunnel with Cloudflare Access authentication before treating it as a permanent website. Ollama, the MCP bridge, and OAuth callback remain on this laptop, so the laptop must stay powered on and connected to the internet.
 
 Athena loads credentials from `var_local.env` as well as the shell environment. Copy `.env.example` to `var_local.env`, add your real Toolkit key there, and never commit `var_local.env`.
 

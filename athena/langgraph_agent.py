@@ -3,6 +3,7 @@
 import os
 import json
 import re
+import sys
 from typing import Any
 
 from .mcp_config import server_config
@@ -59,6 +60,8 @@ class LangGraphAthena:
                 "You are Athena, a concise personal assistant. "
                 "Use MCP tools for current or personal information. "
                 "OAuth authorization for the user's explicitly requested Gmail or Google Calendar connection is an allowed setup action. "
+                "For authorization, use the provided toolkit_authorize MCP tool; never invent a CLI command, redirect_uri parameter, access-token exchange, or user email as a userId. "
+                "Tell the user to open the redirectUrl returned by the tool and then return to Athena. "
                 "Never claim an action succeeded unless the tool confirms it. "
                 "Write tools are disabled unless explicitly enabled by the host."
             ),
@@ -70,8 +73,10 @@ class LangGraphAthena:
         authorization = _requested_connector_authorization(text)
         if authorization:
             return await self._authorize_connector(authorization)
-        if self._last_authorization_request_id and re.search(r"\b(check|wait|complete|finish)\b.*\bauthori[sz]", text.lower()):
-            return await self._wait_for_connection()
+        if self._last_authorization_request_id:
+            connection_result = await self._wait_for_connection()
+            if connection_result.startswith("{") and '"error"' in connection_result:
+                return connection_result
         self._messages.append({"role": "user", "content": text})
         result = await self._agent.ainvoke({"messages": self._messages})
         # Preserve the complete conversation, including MCP tool calls/results,
@@ -86,15 +91,21 @@ class LangGraphAthena:
         result = await tool.ainvoke({
             "userId": os.getenv("TOOLKIT_USER_ID", "athena-user"),
             "connector": connector,
-            "returnUrl": os.getenv("TOOLKIT_RETURN_URL", "http://localhost:8765/toolkit/callback"),
             "read": "all",
             "write": [],
         })
         text = _tool_result_text(result)
         try:
-            self._last_authorization_request_id = json.loads(text).get("requestId")
+            payload = json.loads(text)
+            self._last_authorization_request_id = payload.get("requestId")
+            redirect_url = payload.get("redirectUrl")
+            if redirect_url:
+                print(f"[Athena] Toolkit redirectUrl received: {redirect_url}", file=sys.stderr, flush=True)
+                print(f"[Athena] Toolkit requestId received: {self._last_authorization_request_id}", file=sys.stderr, flush=True)
+            else:
+                print(f"[Athena] Toolkit response did not contain redirectUrl: {text}", file=sys.stderr, flush=True)
         except (json.JSONDecodeError, AttributeError, TypeError):
-            pass
+            print(f"[Athena] Could not parse Toolkit authorization response: {text}", file=sys.stderr, flush=True)
         return text
 
     async def _wait_for_connection(self) -> str:
@@ -119,9 +130,10 @@ def _is_write_tool(tool: Any) -> bool:
 
 def _requested_connector_authorization(text: str) -> str | None:
     lowered = text.lower()
-    if not re.search(r"\b(authenticate|athenticate|authorize|connect|link)\b", lowered):
+    oauth_placeholder = "mcp.google.com" in lowered or "your_client_id" in lowered or "redirect_uri" in lowered
+    if not oauth_placeholder and not re.search(r"\b(authenticate|athenticate|authorize|connect|link)\b", lowered):
         return None
-    if "gmail" in lowered or "email" in lowered:
+    if "gmail" in lowered or "email" in lowered or oauth_placeholder:
         return "gmail"
     if "calendar" in lowered:
         return "google-calendar"

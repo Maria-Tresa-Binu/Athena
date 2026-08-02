@@ -81,6 +81,13 @@ function showBriefing(text) {
   briefing.appendChild(card);
 }
 
+async function readApiResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) return response.json();
+  const body = (await response.text()).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  throw new Error(`Server returned ${response.status}${body ? `: ${body.slice(0, 180)}` : ""}`);
+}
+
 async function activateAthena() {
   activate.disabled = true;
   activate.querySelector(".core-state").textContent = "SCANNING";
@@ -88,7 +95,7 @@ async function activateAthena() {
   briefing.innerHTML = '<div class="briefing-card loading"><div class="card-heading"><span>◈</span> SYNCHRONIZING SOURCES</div><div class="loader"></div></div>';
   try {
     const response = await fetch("/api/briefing", { method: "POST" });
-    const data = await response.json();
+    const data = await readApiResponse(response);
     if (!response.ok) throw new Error(data.detail || "Briefing failed");
     showBriefing(data.response);
     addMessage(data.response, "athena");
@@ -108,7 +115,7 @@ async function send(message) {
   setStatus("PROCESSING REQUEST", true);
   try {
     const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) });
-    const data = await response.json();
+    const data = await readApiResponse(response);
     if (!response.ok) throw new Error(data.detail || "Request failed");
     addMessage(data.response, "athena");
     speak(data.response);
